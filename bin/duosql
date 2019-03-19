@@ -1,0 +1,149 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+import re
+import subprocess
+import time
+import enum
+
+
+class Error(Exception):
+    pass
+
+
+class Prefix(enum.Enum):
+    CONNECT = 'connect'
+    LEFT = 'left'
+    RIGHT = 'right'
+
+
+class Script:
+    def __init__(self, path):
+        lines = Util.load_lines(path)
+        tokens = self._parse_tokens(lines)
+        self.connect = self._extract_connect(tokens)
+        self.sqls = self._extract_sqls(tokens)
+
+    def _parse_tokens(self, lines):
+        tokens = []
+        for idx, line in enumerate(lines):
+            strip_line = line.strip()
+            if strip_line == '' or strip_line.startswith('#'):
+                continue
+            match = re.match(r'^\s*(\w+)\s*:\s*(.+)\s*$', strip_line)
+            if not match:
+                raise Error('invalid syntax in script: line {}'.format(idx + 1))
+            if match.group(1) not in self.PREFIXES:
+                raise Error('prefix must be one of [{}]: line {}'.format(', '.join(self.PREFIXES.keys()), idx + 1))
+            tokens.append({'prefix': self.PREFIXES[match.group(1)], 'data': match.group(2)})
+        return tokens
+
+    def _extract_connect(self, tokens):
+        for token in tokens:
+            if token['prefix'] == Prefix.CONNECT:
+                return token['data']
+        raise Error('no "connect:" specified')
+
+    def _extract_sqls(self, tokens):
+        sqls = []
+        for token in tokens:
+            if token['prefix'] in (Prefix.LEFT, Prefix.RIGHT):
+                sqls.append({'position': token['prefix'], 'command': token['data']})
+        return sqls
+
+    PREFIXES = {
+        Prefix.CONNECT.value: Prefix.CONNECT,
+        Prefix.LEFT.value: Prefix.LEFT,
+        Prefix.RIGHT.value: Prefix.RIGHT,
+    }
+
+
+class Runner:
+    def __init__(self, script):
+        self.script = script
+        self.position = None
+
+    def run(self):
+        self._init_tmux_panes()
+        self._start_connect()
+        self._run_sqls()
+        self._show_ending_message()
+
+    def _init_tmux_panes(self):
+        if not self._is_in_tmux_session():
+            self._run_tmux_command('new-session')
+        else:
+            self._run_tmux_command('new-window')
+        self._run_tmux_command('split-window', '-h')
+        self.position = Prefix.RIGHT
+
+    def _start_connect(self):
+        self._run_command(Prefix.LEFT, self.script.connect)
+        self._run_command(Prefix.RIGHT, self.script.connect)
+
+    def _run_sqls(self):
+        for sql in self.script.sqls:
+            self._run_command(sql['position'], sql['command'])
+
+    def _show_ending_message(self):
+        self._run_tmux_command('display-message', 'finished duosql')
+
+    def _run_command(self, position, command):
+        if self.position != position:
+            self._run_tmux_command('last-pane')
+            self.position = position
+
+        time.sleep(self.PAUSE_TIME)
+        self._tmux_send_string(command)
+        time.sleep(self.PAUSE_TIME)
+        self._tmux_send_string('Enter')
+
+    def _tmux_send_string(self, string):
+        escape_string = re.sub(';', r'\;', string)
+        self._run_tmux_command('send-keys', escape_string)
+
+    def _is_in_tmux_session(self):
+        return os.getenv('TMUX') is not None
+
+    def _run_tmux_command(self, subcommand, *options):
+        command = ['tmux', subcommand] + list(options)
+        subprocess.run(command)
+
+    PAUSE_TIME = 0.8
+
+
+class Util:
+    @staticmethod
+    def load_lines(path):
+        try:
+            with open(path) as f:
+                return f.readlines()
+        except FileNotFoundError:
+            raise Error('file not found: {}'.format(path))
+        except IsADirectoryError:
+            raise Error('is a directory: {}'.format(path))
+        except PermissionError:
+            raise Error('permission denied: {}'.format(path))
+
+
+def main():
+    if len(sys.argv) != 2:
+        print('usage:')
+        print('    duosql <script-path>')
+        return
+
+    script_path = sys.argv[1]
+    script = Script(script_path)
+
+    runner = Runner(script)
+    runner.run()
+
+
+if __name__ == '__main__':
+    try:
+        main()
+        sys.exit(0)
+    except Error as e:
+        print(e, file=sys.stderr)
+        sys.exit(1)
