@@ -2,7 +2,7 @@
 
 An easy way to demo database transactions.
 
-<img src="./images/duosql-demo.gif" width="640" height="385" />
+<img src="https://github.com/johnlinp/duosql/raw/master/images/duosql-demo.gif" width="640" height="385" />
 
 
 ## Prerequisite
