@@ -72,9 +72,8 @@ class Runner:
 
     def _init_tmux_panes(self):
         if not self._is_in_tmux_session():
-            self._run_tmux_command('new-session')
-        else:
-            self._run_tmux_command('new-window')
+            raise Error('cannot run outside a tmux session')
+        self._run_tmux_command('new-window')
         self._run_tmux_command('split-window', '-h')
         self.position = Prefix.RIGHT
 
