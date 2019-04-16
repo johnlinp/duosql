@@ -20,6 +20,7 @@ class Prefix(enum.Enum):
 
 class Script:
     def __init__(self, path):
+        self.path = path
         lines = Util.load_lines(path)
         tokens = self._parse_tokens(lines)
         self.connect = self._extract_connect(tokens)
@@ -72,7 +73,8 @@ class Runner:
 
     def _init_tmux_panes(self):
         if not self._is_in_tmux_session():
-            raise Error('cannot run outside a tmux session')
+            self._run_tmux_command('new-session', 'duosql {}'.format(self.script.path))
+            exit(0)
         self._run_tmux_command('new-window')
         self._run_tmux_command('split-window', '-h')
         self.position = Prefix.RIGHT
