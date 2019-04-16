@@ -1,5 +1,5 @@
 # connect command
-connect: mysql -ujohnlinp -psecret duosql
+connect: mysql -ujohnlinp -psecret somedb
 
 # create table and populate data
 left: CREATE TABLE IF NOT EXISTS person (id INT NOT NULL AUTO_INCREMENT, name VARCHAR(255) NOT NULL, PRIMARY KEY (id));
