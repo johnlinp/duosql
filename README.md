@@ -39,6 +39,6 @@ right: BEGIN;
 right: SELECT COUNT(*) FROM person FOR UPDATE;
 ```
 
-2. Run `duosql <script-file>` in a tmux session.
+2. Run `duosql <script-file>`.
 
 3. Watch.
