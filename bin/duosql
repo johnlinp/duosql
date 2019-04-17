@@ -16,6 +16,7 @@ class Duosql:
 
         parser.add_argument('script_path', metavar='script-path', help='The .duo script path')
         parser.add_argument('--only', choices=['left', 'right'], help='Only execute the left/right part of the .duo script')
+        parser.add_argument('--pause-time', metavar='pause_time', type=float, default=0.8, help='Pause time in seconds between each SQL command')
 
         return parser
 
@@ -104,9 +105,9 @@ class Runner:
             self._run_tmux_command('last-pane')
             self.position = position
 
-        time.sleep(self.PAUSE_TIME)
+        time.sleep(self.pause_time)
         self._tmux_send_string(command)
-        time.sleep(self.PAUSE_TIME)
+        time.sleep(self.pause_time)
         self._tmux_send_string('Enter')
 
     def _tmux_send_string(self, string):
@@ -122,8 +123,9 @@ class Runner:
 
 
 class DuoRunner(Runner):
-    def __init__(self, script):
+    def __init__(self, script, pause_time):
         self.script = script
+        self.pause_time = pause_time
         self.position = None
 
     def _init_tmux_window(self):
@@ -139,13 +141,12 @@ class DuoRunner(Runner):
         for sql in self.script.sqls:
             self._run_command(sql['position'], sql['command'])
 
-    PAUSE_TIME = 0.8
-
 
 class SoloRunner(Runner):
-    def __init__(self, script, only):
+    def __init__(self, script, only, pause_time):
         self.script = script
         self.only = only
+        self.pause_time = pause_time
         self.position = Prefix.LEFT
 
     def _init_tmux_window(self):
@@ -159,8 +160,6 @@ class SoloRunner(Runner):
             if sql['position'].value != self.only:
                 continue
             self._run_command(self.position, sql['command'])
-
-    PAUSE_TIME = 0.1
 
 
 class Util:
@@ -184,9 +183,9 @@ def main():
     script = Script(args.script_path)
 
     if args.only is None:
-        runner = DuoRunner(script)
+        runner = DuoRunner(script, args.pause_time)
     else:
-        runner = SoloRunner(script, args.only)
+        runner = SoloRunner(script, args.only, args.pause_time)
     runner.run()
 
 
