@@ -3,9 +3,20 @@
 import sys
 import os
 import re
+import argparse
 import subprocess
 import time
 import enum
+
+
+class Duosql:
+    @staticmethod
+    def create_args_parser():
+        parser = argparse.ArgumentParser(description='An easy way to demo database transactions.')
+
+        parser.add_argument('script_path', metavar='script-path', help='The .duo script path')
+
+        return parser
 
 
 class Error(Exception):
@@ -129,13 +140,10 @@ class Util:
 
 
 def main():
-    if len(sys.argv) != 2:
-        print('usage:')
-        print('    duosql <script-path>')
-        return
+    parser = Duosql.create_args_parser()
+    args = parser.parse_args()
 
-    script_path = sys.argv[1]
-    script = Script(script_path)
+    script = Script(args.script_path)
 
     runner = Runner(script)
     runner.run()
