@@ -15,6 +15,7 @@ class Duosql:
         parser = argparse.ArgumentParser(description='An easy way to demo database transactions.')
 
         parser.add_argument('script_path', metavar='script-path', help='The .duo script path')
+        parser.add_argument('--only', choices=['left', 'right'], help='Only execute the left/right part of the .duo script')
 
         return parser
 
@@ -31,7 +32,6 @@ class Prefix(enum.Enum):
 
 class Script:
     def __init__(self, path):
-        self.path = path
         lines = Util.load_lines(path)
         tokens = self._parse_tokens(lines)
         self.connect = self._extract_connect(tokens)
@@ -72,31 +72,29 @@ class Script:
 
 
 class Runner:
-    def __init__(self, script):
-        self.script = script
-        self.position = None
+    def __init__(self):
+        raise NotImplementedError()
 
     def run(self):
-        self._init_tmux_panes()
+        if not self._is_in_tmux_session():
+            self._run_duosql_in_new_session()
+        self._init_tmux_window()
         self._start_connect()
         self._run_sqls()
         self._show_ending_message()
 
-    def _init_tmux_panes(self):
-        if not self._is_in_tmux_session():
-            self._run_tmux_command('new-session', 'duosql {}'.format(self.script.path))
-            exit(0)
-        self._run_tmux_command('new-window')
-        self._run_tmux_command('split-window', '-h')
-        self.position = Prefix.RIGHT
+    def _init_tmux_window(self):
+        raise NotImplementedError()
 
     def _start_connect(self):
-        self._run_command(Prefix.LEFT, self.script.connect)
-        self._run_command(Prefix.RIGHT, self.script.connect)
+        raise NotImplementedError()
 
     def _run_sqls(self):
-        for sql in self.script.sqls:
-            self._run_command(sql['position'], sql['command'])
+        raise NotImplementedError()
+
+    def _run_duosql_in_new_session(self):
+        self._run_tmux_command('new-session', ' '.join(sys.argv))
+        exit(0)
 
     def _show_ending_message(self):
         self._run_tmux_command('display-message', 'finished duosql')
@@ -122,7 +120,47 @@ class Runner:
         command = ['tmux', subcommand] + list(options)
         subprocess.run(command)
 
+
+class DuoRunner(Runner):
+    def __init__(self, script):
+        self.script = script
+        self.position = None
+
+    def _init_tmux_window(self):
+        self._run_tmux_command('new-window')
+        self._run_tmux_command('split-window', '-h')
+        self.position = Prefix.RIGHT
+
+    def _start_connect(self):
+        self._run_command(Prefix.LEFT, self.script.connect)
+        self._run_command(Prefix.RIGHT, self.script.connect)
+
+    def _run_sqls(self):
+        for sql in self.script.sqls:
+            self._run_command(sql['position'], sql['command'])
+
     PAUSE_TIME = 0.8
+
+
+class SoloRunner(Runner):
+    def __init__(self, script, only):
+        self.script = script
+        self.only = only
+        self.position = Prefix.LEFT
+
+    def _init_tmux_window(self):
+        self._run_tmux_command('new-window')
+
+    def _start_connect(self):
+        self._run_command(self.position, self.script.connect)
+
+    def _run_sqls(self):
+        for sql in self.script.sqls:
+            if sql['position'].value != self.only:
+                continue
+            self._run_command(self.position, sql['command'])
+
+    PAUSE_TIME = 0.1
 
 
 class Util:
@@ -145,7 +183,10 @@ def main():
 
     script = Script(args.script_path)
 
-    runner = Runner(script)
+    if args.only is None:
+        runner = DuoRunner(script)
+    else:
+        runner = SoloRunner(script, args.only)
     runner.run()
 
 
