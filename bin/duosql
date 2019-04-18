@@ -79,10 +79,12 @@ class Runner:
     def run(self):
         if not self._is_in_tmux_session():
             self._run_duosql_in_new_session()
+        self._toggle_tmux_readonly()
         self._init_tmux_window()
         self._start_connect()
         self._run_sqls()
         self._show_ending_message()
+        self._toggle_tmux_readonly()
 
     def _init_tmux_window(self):
         raise NotImplementedError()
@@ -113,6 +115,9 @@ class Runner:
     def _tmux_send_string(self, string):
         escape_string = re.sub(';', r'\;', string)
         self._run_tmux_command('send-keys', escape_string)
+
+    def _toggle_tmux_readonly(self):
+        self._run_tmux_command('switch-client', '-r')
 
     def _is_in_tmux_session(self):
         return os.getenv('TMUX') is not None
