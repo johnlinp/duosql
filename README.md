@@ -1,6 +1,6 @@
 # duosql
 
-An easy way to demo database transactions.
+An easy way to demonstrate database transactions.
 
 <img src="https://raw.githubusercontent.com/johnlinp/duosql/master/images/duosql-demo.gif" width="640" height="385" />
 
