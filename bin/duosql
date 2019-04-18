@@ -47,9 +47,9 @@ class Script:
             match = re.match(r'^\s*(\w+)\s*:\s*(.+)\s*$', strip_line)
             if not match:
                 raise Error('invalid syntax in script: line {}'.format(idx + 1))
-            if match.group(1) not in self.PREFIXES:
-                raise Error('prefix must be one of [{}]: line {}'.format(', '.join(self.PREFIXES.keys()), idx + 1))
-            tokens.append({'prefix': self.PREFIXES[match.group(1)], 'data': match.group(2)})
+            if match.group(1) not in map(lambda p: p.value, Prefix):
+                raise Error('prefix must be one of [{}]: line {}'.format(', '.join(map(lambda p: p.value, Prefix)), idx + 1))
+            tokens.append({'prefix': Prefix(match.group(1)), 'data': match.group(2)})
         return tokens
 
     def _extract_connect(self, tokens):
@@ -64,12 +64,6 @@ class Script:
             if token['prefix'] in (Prefix.LEFT, Prefix.RIGHT):
                 sqls.append({'position': token['prefix'], 'command': token['data']})
         return sqls
-
-    PREFIXES = {
-        Prefix.CONNECT.value: Prefix.CONNECT,
-        Prefix.LEFT.value: Prefix.LEFT,
-        Prefix.RIGHT.value: Prefix.RIGHT,
-    }
 
 
 class Runner:
