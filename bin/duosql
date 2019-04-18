@@ -38,6 +38,10 @@ class Script:
         self.connect = self._extract_connect(tokens)
         self.sqls = self._extract_sqls(tokens)
 
+    def is_only(self, position):
+        sqls_with_other_position = [sql for sql in self.sqls if sql['position'].value != position]
+        return len(sqls_with_other_position) == 0
+
     def _parse_tokens(self, lines):
         tokens = []
         for idx, line in enumerate(lines):
@@ -181,10 +185,16 @@ def main():
 
     script = Script(args.script_path)
 
-    if args.only is None:
+    only = args.only
+    for position in [Prefix.LEFT.value, Prefix.RIGHT.value]:
+        if script.is_only(position):
+            only = position
+            break
+
+    if only is None:
         runner = DuoRunner(script, args.pause_time)
     else:
-        runner = SoloRunner(script, args.only, args.pause_time)
+        runner = SoloRunner(script, only, args.pause_time)
     runner.run()
 
 
