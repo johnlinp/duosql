@@ -7,6 +7,7 @@ import argparse
 import subprocess
 import time
 import enum
+import shutil
 
 
 class Duosql:
@@ -75,6 +76,8 @@ class Runner:
         raise NotImplementedError()
 
     def run(self):
+        if not self._is_tmux_installed():
+            raise Error('tmux is not installed')
         if not self._is_in_tmux_session():
             self._run_duosql_in_new_session()
         self._toggle_tmux_readonly()
@@ -119,6 +122,9 @@ class Runner:
 
     def _is_in_tmux_session(self):
         return os.getenv('TMUX') is not None
+
+    def _is_tmux_installed(self):
+        return shutil.which('tmux') is not None
 
     def _run_tmux_command(self, subcommand, *options):
         command = ['tmux', subcommand] + list(options)
