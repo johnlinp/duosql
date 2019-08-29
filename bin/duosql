@@ -17,7 +17,7 @@ class Duosql:
 
         parser.add_argument('script_path', metavar='script-path', help='The .duo script path')
         parser.add_argument('--only', '-o', choices=['left', 'right'], help='Only execute the left/right part of the .duo script')
-        parser.add_argument('--pause-time', '-p', metavar='pause_time', type=float, default=0.8, help='Pause time in seconds between each SQL command')
+        parser.add_argument('--pause-time', '-p', type=float, default=0.8, help='Pause time in seconds between each SQL command')
 
         return parser
 
