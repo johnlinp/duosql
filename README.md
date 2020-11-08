@@ -24,27 +24,25 @@ pip3 install duosql
 
 ```yaml
 # connect command
-connect: mysql -ujohnlinp -psecret somedb
+connect: sqlite3 demo.sqlite3
 
 # create table and populate data
 left: DROP TABLE IF EXISTS person;
-left: CREATE TABLE person (id INT NOT NULL AUTO_INCREMENT, name VARCHAR(255) NOT NULL, age INT NOT NULL, PRIMARY KEY (id));
-left: INSERT INTO person (name, age) VALUES ('John Lin', 29);
+left: CREATE TABLE person (id INTEGER, name VARCHAR(255) NOT NULL, age INTEGER NOT NULL, PRIMARY KEY (id));
+left: INSERT INTO person (name, age) VALUES ('Alice', 30);
 
-# start left transaction
-left: SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+# start left transaction and update a row
 left: BEGIN;
-left: SELECT age FROM person WHERE id = 1;
+left: UPDATE person SET age = 31 WHERE id = 1;
 
-# start right transaction
-right: BEGIN;
-right: UPDATE person SET age = 30 WHERE id = 1;
+# update the same row on the right side and then stuck
+right: PRAGMA busy_timeout = 100000;
+right: UPDATE person SET age = 40 WHERE id = 1;
 
-# continue left transaction
-left: SELECT age FROM person WHERE id = 1;
-
-# continue right transaction
-right: ROLLBACK;
+# continue left transaction and finally rollback so the right side can finish
+left: UPDATE person SET age = 32 WHERE id = 1;
+left: UPDATE person SET age = 33 WHERE id = 1;
+left: ROLLBACK;
 ```
 
 2. Run `duosql <script-file>`.
