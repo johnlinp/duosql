@@ -1,28 +1,3 @@
-# duosql
-
-An easy way to demonstrate database transactions.
-
-<img src="https://raw.githubusercontent.com/johnlinp/duosql/master/images/duosql-demo.gif" width="640" height="385" />
-
-
-## Prerequisite
-
-- Python 3.5+
-- tmux
-
-
-## Install
-
-```
-pip3 install duosql
-```
-
-
-## Usage
-
-1. Create a .duo script file. For example:
-
-```yaml
 # connect command
 connect: sqlite3 demo.sqlite3
 
@@ -43,8 +18,3 @@ right: UPDATE person SET age = 40 WHERE id = 1;
 left: UPDATE person SET age = 32 WHERE id = 1;
 left: UPDATE person SET age = 33 WHERE id = 1;
 left: ROLLBACK;
-```
-
-2. Run `duosql <script-file>`.
-
-3. Watch.
